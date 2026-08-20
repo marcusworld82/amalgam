@@ -1,260 +1,351 @@
-"use client";
+'use client';
 
-import { useLayoutEffect, useRef } from "react";
-import { gsap } from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { FormEvent, useEffect, useRef, useState } from 'react';
 
-gsap.registerPlugin(ScrollTrigger);
+const clamp = (v: number, min = 0, max = 1) => Math.min(max, Math.max(min, v));
 
-const systems = [
-  ["01", "INTELLIGENCE", "Amala", "Your health has context. Amala understands it.", "Signals become an insight you can act on."],
-  ["02", "RITUAL", "Daily ritual", "Your everyday operating system.", "Every dose, every day. Held together."],
-  ["03", "AWARENESS", "Notice", "See what’s actually happening.", "Hydration, stress, sleep, CGM and movement in one calm place."],
-  ["04", "RHYTHM", "Patterns", "Consistency becomes measurable.", "Small actions make a clearer picture over time."],
-  ["05", "SYNTHESIS", "Perspective", "Your history becomes something you can learn from.", "Daily signals resolve into a single living health picture."]
-] as const;
+type IconName = 'capsule' | 'leaf' | 'drop' | 'bubble' | 'bolt' | 'ring' | 'wave' | 'pulse' | 'moon' | 'star';
 
-const data = ["Supplements", "Hydration", "Sleep", "Stress", "CGM", "Movement"];
+function Icon({ name, size = 64 }: { name: IconName; size?: number }) {
+  const p = { width: size, height: size, viewBox: '0 0 64 64', fill: 'none', xmlns: 'http://www.w3.org/2000/svg' } as const;
+  switch (name) {
+    case 'capsule':
+      return (
+        <svg {...p}>
+          <rect x="10" y="25" width="44" height="14" rx="7" transform="rotate(-45 32 32)" stroke="currentColor" strokeWidth="2.5" />
+          <path d="M32 17.5 L32 46.5" transform="rotate(-45 32 32)" stroke="currentColor" strokeWidth="2.5" />
+        </svg>
+      );
+    case 'leaf':
+      return (
+        <svg {...p}>
+          <path d="M50 14C30 16 16 28 14 50c22-2 34-16 36-36Z" stroke="currentColor" strokeWidth="2.5" strokeLinejoin="round" />
+          <path d="M18 46C26 34 36 26 46 20" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+        </svg>
+      );
+    case 'drop':
+      return (
+        <svg {...p}>
+          <path d="M32 8C24 20 16 28 16 38a16 16 0 0 0 32 0c0-10-8-18-16-30Z" stroke="currentColor" strokeWidth="2.5" strokeLinejoin="round" />
+          <path d="M24 40a8 8 0 0 0 8 8" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+        </svg>
+      );
+    case 'bubble':
+      return (
+        <svg {...p}>
+          <circle cx="32" cy="32" r="18" stroke="currentColor" strokeWidth="2.5" />
+          <circle cx="26" cy="26" r="4" fill="currentColor" />
+        </svg>
+      );
+    case 'bolt':
+      return (
+        <svg {...p}>
+          <path d="M36 6 14 36h14l-4 22 24-32H34l2-20Z" stroke="currentColor" strokeWidth="2.5" strokeLinejoin="round" />
+        </svg>
+      );
+    case 'ring':
+      return (
+        <svg {...p}>
+          <circle cx="32" cy="32" r="20" stroke="currentColor" strokeWidth="2.5" strokeDasharray="6 8" strokeLinecap="round" />
+        </svg>
+      );
+    case 'wave':
+      return (
+        <svg {...p}>
+          <path d="M8 40c6-12 12-12 18 0s12 12 18 0 10-10 12-4" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+          <path d="M8 24c6-12 12-12 18 0s12 12 18 0 10-10 12-4" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" opacity="0.45" />
+        </svg>
+      );
+    case 'pulse':
+      return (
+        <svg {...p}>
+          <path d="M6 34h14l6-16 10 30 8-22 4 8h10" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      );
+    case 'moon':
+      return (
+        <svg {...p}>
+          <path d="M40 10a22 22 0 1 0 14 26A26 26 0 0 1 40 10Z" stroke="currentColor" strokeWidth="2.5" strokeLinejoin="round" />
+        </svg>
+      );
+    case 'star':
+      return (
+        <svg {...p}>
+          <path d="M32 8c2 12 8 20 22 22-14 2-20 10-22 22-2-12-8-20-22-22 14-2 20-10 22-22Z" stroke="currentColor" strokeWidth="2.5" strokeLinejoin="round" />
+        </svg>
+      );
+  }
+}
 
-export default function Home() {
-  const page = useRef<HTMLDivElement>(null);
+type Floater = { icon: IconName; x: number; y: number; s: number; depth: number; anim: 'a' | 'b' | 'c' };
+type Step = { word: string; sub: string; floaters: Floater[] };
 
-  useLayoutEffect(() => {
-    const ctx = gsap.context(() => {
-      gsap.to(".hero-capsule", {
-        y: 120,
-        rotation: 12,
-        scale: 0.82,
-        ease: "none",
-        scrollTrigger: { trigger: ".hero", start: "top top", end: "bottom top", scrub: 1.2 }
+const STEPS: Step[] = [
+  {
+    word: 'Supplements',
+    sub: 'Every dose remembered. Every stack understood.',
+    floaters: [
+      { icon: 'capsule', x: 14, y: 20, s: 92, depth: 1.5, anim: 'a' },
+      { icon: 'leaf', x: 78, y: 16, s: 76, depth: 1.0, anim: 'b' },
+      { icon: 'leaf', x: 10, y: 64, s: 56, depth: 0.8, anim: 'c' },
+      { icon: 'bubble', x: 84, y: 60, s: 42, depth: 1.7, anim: 'a' },
+      { icon: 'star', x: 70, y: 80, s: 46, depth: 1.2, anim: 'b' },
+      { icon: 'capsule', x: 26, y: 82, s: 54, depth: 0.9, anim: 'c' },
+    ],
+  },
+  {
+    word: 'Hydration',
+    sub: 'Water is a metric, not a vibe.',
+    floaters: [
+      { icon: 'drop', x: 16, y: 18, s: 84, depth: 1.4, anim: 'a' },
+      { icon: 'bubble', x: 80, y: 22, s: 52, depth: 1.1, anim: 'b' },
+      { icon: 'bubble', x: 12, y: 60, s: 36, depth: 0.9, anim: 'c' },
+      { icon: 'drop', x: 86, y: 66, s: 58, depth: 1.6, anim: 'b' },
+      { icon: 'wave', x: 24, y: 80, s: 80, depth: 1.0, anim: 'a' },
+      { icon: 'bubble', x: 68, y: 78, s: 44, depth: 1.3, anim: 'c' },
+    ],
+  },
+  {
+    word: 'Movement',
+    sub: 'Steps, strain, and the story in between.',
+    floaters: [
+      { icon: 'bolt', x: 14, y: 22, s: 88, depth: 1.5, anim: 'a' },
+      { icon: 'ring', x: 80, y: 16, s: 72, depth: 1.0, anim: 'b' },
+      { icon: 'pulse', x: 10, y: 66, s: 74, depth: 0.9, anim: 'c' },
+      { icon: 'bolt', x: 84, y: 62, s: 50, depth: 1.7, anim: 'b' },
+      { icon: 'ring', x: 26, y: 80, s: 48, depth: 1.2, anim: 'a' },
+      { icon: 'star', x: 70, y: 80, s: 44, depth: 1.1, anim: 'c' },
+    ],
+  },
+  {
+    word: 'Stress',
+    sub: 'See the spike before you feel it.',
+    floaters: [
+      { icon: 'pulse', x: 16, y: 20, s: 90, depth: 1.4, anim: 'a' },
+      { icon: 'wave', x: 78, y: 18, s: 78, depth: 1.0, anim: 'b' },
+      { icon: 'ring', x: 12, y: 62, s: 52, depth: 0.8, anim: 'c' },
+      { icon: 'moon', x: 84, y: 60, s: 56, depth: 1.5, anim: 'b' },
+      { icon: 'wave', x: 26, y: 82, s: 58, depth: 1.1, anim: 'a' },
+      { icon: 'bubble', x: 68, y: 78, s: 40, depth: 1.3, anim: 'c' },
+    ],
+  },
+  {
+    word: 'Sleep',
+    sub: 'Recovery you can actually read.',
+    floaters: [
+      { icon: 'moon', x: 16, y: 18, s: 90, depth: 1.5, anim: 'a' },
+      { icon: 'star', x: 80, y: 20, s: 60, depth: 1.0, anim: 'b' },
+      { icon: 'star', x: 12, y: 62, s: 42, depth: 0.9, anim: 'c' },
+      { icon: 'moon', x: 84, y: 64, s: 52, depth: 1.6, anim: 'b' },
+      { icon: 'star', x: 28, y: 82, s: 50, depth: 1.2, anim: 'a' },
+      { icon: 'bubble', x: 66, y: 80, s: 38, depth: 1.1, anim: 'c' },
+    ],
+  },
+];
+
+export default function Page() {
+  const journeyRef = useRef<HTMLElement>(null);
+  const bgRef = useRef<HTMLDivElement>(null);
+  const [p, setP] = useState(0);
+  const [sent, setSent] = useState(false);
+
+  useEffect(() => {
+    let raf = 0;
+    const onScroll = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        const el = journeyRef.current;
+        const vh = window.innerHeight;
+        if (el) {
+          const rect = el.getBoundingClientRect();
+          setP(clamp(-rect.top / (rect.height - vh)));
+        }
+        if (bgRef.current) {
+          const max = document.documentElement.scrollHeight - vh;
+          const bp = max > 0 ? clamp(window.scrollY / max) : 0;
+          bgRef.current.style.backgroundPosition = `50% ${bp * 100}%`;
+        }
       });
-
-      gsap.utils.toArray<HTMLElement>(".orbit-chip").forEach((chip, index) => {
-        gsap.to(chip, {
-          rotation: index % 2 ? -130 : 130,
-          x: (index % 2 ? -1 : 1) * (70 + index * 18),
-          y: -50 + index * 24,
-          ease: "none",
-          scrollTrigger: { trigger: ".hero", start: "top top", end: "bottom top", scrub: 1.5 }
-        });
-      });
-
-      gsap.utils.toArray<HTMLElement>(".system").forEach((section) => {
-        const visual = section.querySelector(".system-visual");
-        const capsule = section.querySelector(".system-capsule");
-
-        gsap.fromTo(
-          visual,
-          { y: 70, opacity: 0.25, rotate: -4 },
-          {
-            y: -30,
-            opacity: 1,
-            rotate: 2,
-            ease: "none",
-            scrollTrigger: { trigger: section, start: "top bottom", end: "bottom top", scrub: 1 }
-          }
-        );
-
-        gsap.to(capsule, {
-          rotation: 26,
-          y: -65,
-          scale: 1.09,
-          ease: "none",
-          scrollTrigger: { trigger: section, start: "top bottom", end: "bottom top", scrub: 1 }
-        });
-      });
-
-      gsap.utils.toArray<HTMLElement>(".reveal").forEach((item) => {
-        gsap.from(item, {
-          y: 42,
-          opacity: 0,
-          duration: 0.95,
-          ease: "power3.out",
-          scrollTrigger: { trigger: item, start: "top 82%" }
-        });
-      });
-    }, page);
-
-    return () => ctx.revert();
+    };
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', onScroll);
+    };
   }, []);
 
+  useEffect(() => {
+    const io = new IntersectionObserver(
+      (entries) => entries.forEach((e) => e.isIntersecting && e.target.classList.add('is-in')),
+      { threshold: 0.2 }
+    );
+    document.querySelectorAll('[data-reveal]').forEach((el) => io.observe(el));
+    return () => io.disconnect();
+  }, []);
+
+  const N = STEPS.length;
+  const seg = p * (N + 1);
+  const introVis = clamp(1 - seg * 1.15);
+  const capsuleRot = Math.sin(p * Math.PI * 2.5) * 16;
+  const capsuleX = Math.sin(p * Math.PI * 2) * 26;
+  const capsuleScale = 0.92 + 0.16 * Math.sin(p * Math.PI);
+
+  const submit = (e: FormEvent) => {
+    e.preventDefault();
+    setSent(true);
+  };
+
   return (
-    <main ref={page}>
-      <section className="hero">
-        <div className="ambient ambient-a" />
-        <div className="ambient ambient-b" />
-        <div className="grain" />
-        <header>
-          <span className="wordmark">ə-māl-gəm</span>
-          <span className="header-note">your daily ritual</span>
-        </header>
-        <div className="hero-orbit" aria-hidden="true">
-          {data.map((item, i) => (
-            <span key={item} className={`orbit-chip chip-${i}`}>
-              {item}
-            </span>
-          ))}
-        </div>
-        <div className="hero-center">
-          <div className="capsule-halo" />
-          <img className="hero-capsule" src="/botanical-capsule.jpeg" alt="Amalgam botanical capsule" />
-          <p className="definition">A mixture or blend of different elements combined into a unified whole.</p>
-        </div>
-        <div className="hero-copy">
-          <p className="eyebrow">AMALGAM / DAILY RITUAL</p>
-          <h1>
-            Every dose, every day.
-            <em>Held together.</em>
-          </h1>
-          <p>Health, in all of its moving parts, held in one calm place.</p>
-        </div>
-        <div className="scroll-cue">
-          SCROLL TO EXPERIENCE <span>↓</span>
-        </div>
-      </section>
+    <main>
+      <div className="bg-flow" ref={bgRef} aria-hidden />
+      <div className="orb orb-1" aria-hidden />
+      <div className="orb orb-2" aria-hidden />
+      <div className="orb orb-3" aria-hidden />
+      <div className="grain" aria-hidden />
 
-      <section className="thesis">
-        <p className="eyebrow">THE AMALGAM MOMENT</p>
-        <h2>
-          Health is not a dashboard.
-          <em>It’s a rhythm.</em>
-        </h2>
-        <div className="thesis-grid">
-          <p>Amalgam is a daily ritual companion. It brings your supplements, medications, hydration, sleep, movement, and wearable signals into one place — then helps you see what actually works.</p>
-          <p>Not another wall of numbers. A quieter way to notice patterns, close gaps, and turn small daily actions into a clearer picture over time.</p>
-        </div>
-      </section>
+      <header className="site-header">
+        <a className="wordmark" href="#top">AMALGAM</a>
+        <nav>
+          <a href="#story">Story</a>
+          <a href="#ai">Intelligence</a>
+          <a href="#enter" className="btn-pill btn-small">Request invite</a>
+        </nav>
+      </header>
 
-      <section className="connection">
-        <div className="connection-copy reveal">
-          <p className="eyebrow">ONE PLACE FOR EVERYTHING</p>
-          <h2>
-            Your health, <em>finally connected.</em>
-          </h2>
-          <p>Sleep. Supplements. Medication. Hydration. Stress. Activity. Each signal has meaning when it belongs to the whole.</p>
-        </div>
-        <div className="connection-visual reveal">
-          <div className="connection-core">AMALA</div>
-          {data.map((item, i) => (
-            <div className={`signal signal-${i}`} key={item}>
-              {item}
-            </div>
-          ))}
-          <div className="connection-lines" />
-        </div>
-      </section>
-
-      <section className="systems-intro">
-        <p className="eyebrow">THE SYSTEM</p>
-        <h2>Connect → Understand → Act → Track → Learn → Adapt</h2>
-      </section>
-
-      {systems.map(([number, label, title, heading, detail], index) => (
-        <section className={`system system-${index}`} key={label}>
-          <div className="system-copy">
-            <p className="system-index">
-              {number} / {label}
-            </p>
-            <h2>{heading}</h2>
-            <p>{detail}</p>
-            <div className="system-progress">
-              {systems.map(([n, l]) => (
-                <span className={n === number ? "active" : ""} key={n}>
-                  {n} {l}
-                </span>
-              ))}
-            </div>
+      <section className="journey" id="top" ref={journeyRef} style={{ height: `${(N + 1) * 100 + 100}vh` }}>
+        <div className="journey-sticky">
+          <div
+            className="hero-intro"
+            style={{ opacity: introVis, transform: `translateY(${seg * -70}px)`, pointerEvents: seg < 0.6 ? 'auto' : 'none' }}
+          >
+            <p className="hero-kicker rise d1">Health, in one place</p>
+            <h1 className="hero-title rise d2">AMALGAM</h1>
+            <p className="hero-sub rise d3">Your body, decoded.</p>
+            <a href="#enter" className="btn-pill rise d4">Enter Amalgam</a>
+            <div className="scroll-hint rise d5"><span />Scroll</div>
           </div>
-          <div className="system-visual">
-            <div className="visual-glow" />
-            <img className="system-capsule" src="/botanical-capsule.jpeg" alt="" />
-            <div className="glass-ui">
-              <span>{title.toUpperCase()}</span>
-              <strong>{index === 0 ? "78" : index === 1 ? "13 / 25" : index === 2 ? "62%" : index === 3 ? "8 days" : "One clear picture"}</strong>
-              <small>{index === 0 ? "Health index · in context" : index === 1 ? "doses held together" : index === 2 ? "today’s rhythm" : index === 3 ? "current consistency" : "your next best action"}</small>
-              <i />
-            </div>
-            <div className="visual-orbit orbit-one" />
-            <div className="visual-orbit orbit-two" />
-          </div>
-        </section>
-      ))}
 
-      <section className="body">
-        <p className="eyebrow">THE BODY IS AN AMALGAM</p>
-        <h2>
-          What the body needs <em>to thrive.</em>
-        </h2>
-        <p className="body-lead">Different elements. Different inputs. One living system.</p>
-        <div className="elements">
-          {["O", "C", "H", "N", "Ca", "P", "K", "S"].map((element, i) => (
-            <article className={`element e-${i}`} key={element}>
-              <span>{element}</span>
-              <small>{["Oxygen", "Carbon", "Hydrogen", "Nitrogen", "Calcium", "Phosphorus", "Potassium", "Sulfur"][i]}</small>
-            </article>
-          ))}
+          <div
+            className="capsule-stage"
+            style={{ transform: `translate(-50%, -50%) translateX(${capsuleX}px) scale(${capsuleScale})` }}
+          >
+            <div className="capsule-glow" aria-hidden />
+            <div className="capsule-halo" aria-hidden />
+            <div className="capsule-bob">
+              <img
+                src="/botanical-capsule.jpeg"
+                alt="Amalgam botanical capsule"
+                className="capsule"
+                style={{ transform: `rotate(${capsuleRot}deg)` }}
+              />
+            </div>
+            <div className="capsule-shadow" aria-hidden />
+          </div>
+
+          {STEPS.map((s, i) => {
+            const local = clamp(seg - 1 - i);
+            const vis = clamp(1 - Math.abs(seg - 1 - i - 0.5) * 2);
+            return (
+              <div
+                key={s.word}
+                className="step"
+                style={{ opacity: vis, visibility: vis <= 0.02 ? 'hidden' : 'visible' }}
+                aria-hidden={vis <= 0.02}
+              >
+                <h2 className="step-word" style={{ transform: `translate(-50%, -50%) translateY(${(local - 0.5) * -90}px)` }}>
+                  {s.word}
+                </h2>
+                {s.floaters.map((f, j) => (
+                  <div
+                    key={j}
+                    className="floater"
+                    style={{
+                      left: `${f.x}%`,
+                      top: `${f.y}%`,
+                      transform: `translate(-50%, -50%) translateY(${(local - 0.5) * f.depth * -240}px) rotate(${(local - 0.5) * f.depth * 36}deg)`,
+                    }}
+                  >
+                    <span className={`floater-inner float-${f.anim}`} style={{ animationDelay: `${j * 0.65}s` }}>
+                      <Icon name={f.icon} size={f.s} />
+                    </span>
+                  </div>
+                ))}
+                <p className="step-sub" style={{ transform: `translate(-50%, 0) translateY(${(local - 0.5) * 46}px)` }}>
+                  {s.sub}
+                </p>
+              </div>
+            );
+          })}
+
+          <div className="dots" aria-hidden>
+            {STEPS.map((_, i) => (
+              <span key={i} className={seg - 1 >= i && seg - 1 < i + 1 ? 'on' : ''} />
+            ))}
+          </div>
         </div>
-        <p className="body-close">
-          Sleep · Nutrition · Supplements · Medication · Movement · Stress
-          <br />
-          <strong>All held together.</strong>
+      </section>
+
+      <section className="section story" id="story">
+        <p className="kicker" data-reveal>The story</p>
+        <h2 className="section-title" data-reveal>One body.<br />One story.</h2>
+        <p className="section-copy" data-reveal>
+          Amalgam isn&rsquo;t another dashboard of disconnected charts. It reads your supplements, hydration,
+          movement, stress, and sleep as one continuous narrative &mdash; then tells you what tomorrow should look like.
         </p>
-      </section>
-
-      <section className="bento">
-        <div className="bento-head">
-          <p className="eyebrow">THE DETAILS</p>
-          <h2>Everything has a place.</h2>
-        </div>
-        <div className="bento-grid">
-          <article className="bento-card large">
-            <span>AMALA</span>
-            <h3>Ask better questions.</h3>
-            <p>Quiet, contextual intelligence grounded in your rhythm.</p>
-            <div className="chat">
-              Why am I taking this?
-              <br />
-              <b>Here’s the pattern I’m noticing…</b>
-            </div>
+        <div className="bento">
+          <article className="card" data-reveal>
+            <div className="card-icon"><Icon name="pulse" size={40} /></div>
+            <h3>Track</h3>
+            <p>Log your stack, water, steps, and sleep in seconds. No friction, no guilt trips.</p>
           </article>
-          <article className="bento-card cgm">
-            <span>CGM</span>
-            <h3>See the signal.</h3>
-            <div className="chart" />
+          <article className="card" data-reveal>
+            <div className="card-icon"><Icon name="wave" size={40} /></div>
+            <h3>Understand</h3>
+            <p>Patterns surface on their own &mdash; which habits lift you, and which quietly drain you.</p>
           </article>
-          <article className="bento-card journal">
-            <span>JOURNAL</span>
-            <h3>Make space to notice.</h3>
-            <p>Small reflections, held over time.</p>
-          </article>
-          <article className="bento-card reminders">
-            <span>RITUAL</span>
-            <h3>A reminder when it matters.</h3>
-            <div className="mini-pill" />
+          <article className="card" data-reveal>
+            <div className="card-icon"><Icon name="star" size={40} /></div>
+            <h3>Improve</h3>
+            <p>Daily AI recommendations tuned to your body, not a generic template.</p>
           </article>
         </div>
       </section>
 
-      <section className="sanctuary">
-        <div className="sanctuary-mark">ə</div>
-        <p className="eyebrow">PRIVATE BY DESIGN</p>
-        <h2>
-          Your data is a <em>sanctuary.</em>
-        </h2>
-        <p>Your rituals, readings, and reflections are deeply personal. Amalgam is built with a quieter, more intentional relationship with your health information.</p>
-        <div className="start-card">
-          <p>START WITH TODAY.</p>
-          <h3>Every small action belongs somewhere.</h3>
-          <button type="button">
-            Enter Amalgam <span>↗</span>
-          </button>
+      <section className="section ai" id="ai">
+        <div className="ai-orb" data-reveal aria-hidden>
+          <div className="ai-orb-ring" />
+          <div className="ai-orb-core"><Icon name="bolt" size={56} /></div>
+        </div>
+        <div className="ai-copy">
+          <p className="kicker" data-reveal>Amalgam Intelligence</p>
+          <h2 className="section-title" data-reveal>It knows what<br />yesterday did to you.</h2>
+          <p className="section-copy" data-reveal>
+            Every morning, Amalgam reads the night before &mdash; sleep quality, stress load, hydration debt &mdash;
+            and hands you a plan that already accounts for it. Recovery stops being a guess.
+          </p>
+          <a href="#enter" className="btn-pill" data-reveal>Get early access</a>
         </div>
       </section>
 
-      <footer>
-        <span>© AMALGAM</span>
-        <span>EVERY DOSE, EVERY DAY. HELD TOGETHER.</span>
-        <span>DESIGN STUDY / 2026</span>
+      <section className="section cta" id="enter">
+        <h2 className="cta-title" data-reveal>Enter<br />Amalgam</h2>
+        <p className="section-copy" data-reveal>Request your invite. We open the doors in small waves.</p>
+        {sent ? (
+          <p className="cta-done" data-reveal>You&rsquo;re on the list. Watch your inbox.</p>
+        ) : (
+          <form className="cta-form" onSubmit={submit} data-reveal>
+            <input type="email" required placeholder="you@email.com" aria-label="Email address" />
+            <button type="submit" className="btn-pill">Request invite</button>
+          </form>
+        )}
+      </section>
+
+      <footer className="site-footer">
+        <span className="wordmark">AMALGAM</span>
+        <span>&copy; 2026 Amalgam. Your body, decoded.</span>
       </footer>
     </main>
   );
