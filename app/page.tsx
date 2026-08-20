@@ -506,7 +506,7 @@ export default function Page() {
         <nav>
           <a href="#story">Story</a>
           <a href="#features">Features</a>
-          <a href="https://tryamalgam.com/request-invite" className="btn-pill btn-small">Enter Amalgam</a>
+          <button type="button" className="btn-pill btn-small">Enter Amalgam</button>
         </nav>
       </header>
 
@@ -521,7 +521,7 @@ export default function Page() {
             <h1 className="hero-title rise d2">AMALGAM</h1>
             <p className="hero-sub rise d3">Every dose, every day. Held together.</p>
             <div className="hero-cta rise d4">
-              <a href="https://tryamalgam.com/request-invite" className="btn-pill">Enter Amalgam</a>
+              <button type="button" className="btn-pill">Enter Amalgam</button>
               <a href="#features" className="btn-pill btn-ghost">See features</a>
             </div>
             <div className="scroll-hint rise d5"><span />Scroll</div>
@@ -724,7 +724,7 @@ export default function Page() {
           </Tilt>
         </div>
         <p className="more-link" data-reveal>
-          <a href="https://tryamalgam.com/features">Show all features →</a>
+          <span>Show all features →</span>
         </p>
       </section>
 
@@ -790,7 +790,7 @@ export default function Page() {
           you create the clarity your body needs to perform at its best.
         </p>
         <p className="sub-label" data-reveal>Begin your daily ritual</p>
-        <a href="https://tryamalgam.com/request-invite" className="btn-pill" data-reveal>Enter Amalgam</a>
+        <button type="button" className="btn-pill" data-reveal>Enter Amalgam</button>
       </section>
 
       {/* ---------- privacy ---------- */}
@@ -806,7 +806,7 @@ export default function Page() {
           protected, and held in confidence.
         </p>
         <p className="more-link" data-reveal>
-          <a href="https://tryamalgam.com/privacy-security">The Anatomy of Your Sanctuary →</a>
+          <span>The Anatomy of Your Sanctuary →</span>
         </p>
       </section>
 
@@ -820,13 +820,13 @@ export default function Page() {
         <p className="section-copy" data-reveal>
           No setup ceremony. Add what you take, when you take it, and let Amalgam hold the rest.
         </p>
-        <a href="https://tryamalgam.com/request-invite" className="btn-pill" data-reveal>Enter Amalgam</a>
+        <button type="button" className="btn-pill" data-reveal>Enter Amalgam</button>
       </section>
 
       <footer className="site-footer">
         <span className="wordmark">AMALGAM</span>
         <span>&copy; 2026 Amalgam. Every dose, every day. Held together.</span>
-        <a href="https://tryamalgam.com/privacy-security">Privacy</a>
+        <span>Privacy</span>
       </footer>
     </main>
   );
