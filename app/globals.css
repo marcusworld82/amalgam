@@ -489,6 +489,12 @@ main {
   padding: clamp(30px, 6vh, 60px) 0;
   -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
   mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+  transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+
+.marquee:hover .marquee-track {
+  animation-play-state: paused;
 }
 
 .marquee-track {
@@ -510,6 +516,11 @@ main {
   font-weight: 600;
   letter-spacing: 0.03em;
   white-space: nowrap;
+  transition: color 0.3s ease;
+}
+
+.mq-item:hover {
+  color: var(--lav-deep);
 }
 
 .mq-dot {
@@ -609,6 +620,18 @@ main {
   margin-top: 64px;
 }
 
+.tilt {
+  will-change: transform;
+}
+
+.tilt > .card {
+  height: 100%;
+}
+
+.feature-wide {
+  grid-column: 1 / -1;
+}
+
 .card {
   background: rgba(255, 255, 255, 0.55);
   backdrop-filter: blur(14px);
@@ -619,8 +642,7 @@ main {
   transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.45s ease;
 }
 
-.card:hover {
-  transform: translateY(-8px) rotate(-0.5deg);
+.tilt:hover .card {
   box-shadow: 0 30px 60px rgba(23, 20, 15, 0.14);
 }
 
@@ -634,6 +656,18 @@ main {
   background: linear-gradient(135deg, #efe7fb 0%, #dcebf6 100%);
   color: var(--lav-deep);
   margin-bottom: 22px;
+}
+
+.tilt:hover .card-icon {
+  animation: iconWiggle 0.7s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes iconWiggle {
+  0% { transform: rotate(0); }
+  25% { transform: rotate(-9deg) scale(1.06); }
+  55% { transform: rotate(7deg) scale(1.08); }
+  80% { transform: rotate(-3deg) scale(1.04); }
+  100% { transform: rotate(0) scale(1); }
 }
 
 .card h3 {
@@ -660,10 +694,6 @@ main {
   color: var(--lav-deep);
   margin-bottom: 12px;
   opacity: 1;
-}
-
-.feature-wide {
-  grid-column: 1 / -1;
 }
 
 /* meet amalgam */
@@ -708,6 +738,17 @@ main {
   font-weight: 600;
   background: rgba(255, 255, 255, 0.65);
   border: 1px solid rgba(23, 20, 15, 0.1);
+  opacity: 0;
+  transform: scale(0.6);
+}
+
+.is-in .chip {
+  animation: chipPop 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  animation-delay: var(--d, 0s);
+}
+
+@keyframes chipPop {
+  to { opacity: 1; transform: scale(1); }
 }
 
 .chip .dot {
@@ -719,11 +760,21 @@ main {
 
 .chip-live .dot {
   background: #4caf7d;
-  box-shadow: 0 0 0 4px rgba(76, 175, 125, 0.18);
+  animation: dotPing 2.2s ease-out infinite;
+}
+
+@keyframes dotPing {
+  0% { box-shadow: 0 0 0 0 rgba(76, 175, 125, 0.45); }
+  70% { box-shadow: 0 0 0 9px rgba(76, 175, 125, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(76, 175, 125, 0); }
 }
 
 .chip-soon {
   opacity: 0.65;
+}
+
+.is-in .chip-soon {
+  animation: chipPop 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
 .chip-soon .dot {
@@ -789,6 +840,23 @@ main {
   aspect-ratio: 1;
   border-radius: 4px;
   background: var(--lav-deep);
+  transform: scale(0);
+}
+
+.is-in .heat span {
+  animation:
+    heatPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards,
+    heatGlow 3.4s ease-in-out infinite alternate;
+  animation-delay: var(--d, 0s), calc(var(--d, 0s) + 1s);
+}
+
+@keyframes heatPop {
+  to { transform: scale(1); }
+}
+
+@keyframes heatGlow {
+  from { filter: brightness(1); }
+  to { filter: brightness(1.28); }
 }
 
 /* ---------- flip cards ---------- */
@@ -797,11 +865,6 @@ main {
   height: 250px;
   perspective: 1200px;
   cursor: pointer;
-  transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.flip:hover {
-  transform: translateY(-6px);
 }
 
 .flip-inner {
@@ -812,7 +875,12 @@ main {
   transition: transform 0.75s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.flip.flipped .flip-inner {
+.flip:hover .flip-inner {
+  transform: rotateY(8deg);
+}
+
+.flip.flipped .flip-inner,
+.flip.flipped:hover .flip-inner {
   transform: rotateY(180deg);
 }
 
@@ -883,6 +951,7 @@ main {
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
+  font-variant-numeric: tabular-nums;
 }
 
 .stat-num-sm {
@@ -946,6 +1015,23 @@ main {
   margin-right: auto;
 }
 
+.privacy-icon svg path {
+  stroke-dasharray: 260;
+  stroke-dashoffset: 260;
+}
+
+.privacy-icon.is-in svg path {
+  animation: drawStroke 1.4s ease forwards;
+}
+
+.privacy-icon.is-in svg path:last-child {
+  animation-delay: 0.9s;
+}
+
+@keyframes drawStroke {
+  to { stroke-dashoffset: 0; }
+}
+
 /* ---------- CTA ---------- */
 
 .cta {
@@ -985,7 +1071,7 @@ main {
   border-bottom: 1px solid rgba(23, 20, 15, 0.3);
 }
 
-/* reveal on scroll */
+/* ---------- reveal on scroll ---------- */
 
 [data-reveal] {
   opacity: 0;
@@ -996,6 +1082,41 @@ main {
 [data-reveal].is-in {
   opacity: 1;
   transform: translateY(0);
+}
+
+/* word-mask reveal */
+
+[data-reveal='words'] {
+  opacity: 1;
+  transform: none;
+}
+
+.wmask {
+  display: inline-block;
+  overflow: hidden;
+  vertical-align: bottom;
+}
+
+.wword {
+  display: inline-block;
+  transform: translateY(115%);
+  transition: transform 0.85s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.is-in .wword {
+  transform: translateY(0);
+}
+
+/* 3D flip-in reveal */
+
+[data-reveal='flip'] {
+  opacity: 0;
+  transform: perspective(1100px) rotateY(38deg) translateY(46px);
+}
+
+[data-reveal='flip'].is-in {
+  opacity: 1;
+  transform: perspective(1100px) rotateY(0deg) translateY(0);
 }
 
 /* ---------- responsive ---------- */

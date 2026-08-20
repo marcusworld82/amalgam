@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { CSSProperties, PointerEvent, ReactNode, useEffect, useRef, useState } from 'react';
 
 const clamp = (v: number, min = 0, max = 1) => Math.min(max, Math.max(min, v));
 
@@ -201,13 +201,20 @@ const WHY = [
 ];
 
 const STATS = [
-  { stat: '~74%', label: 'of US adults are overweight or obese.', desc: 'Overweight is defined as a BMI of 25–29.9, obesity as 30–39.9, and severe (class III) obesity as 40+. Excess body fat raises the risk of heart disease, type 2 diabetes, and many cancers — making body composition one of the strongest signals of long-term health.' },
-  { stat: '~75%', label: 'do not meet recommended physical activity levels.', desc: 'US guidelines call for at least 150 minutes of moderate (or 75 minutes of vigorous) aerobic activity per week, plus muscle-strengthening on 2+ days. Falling short is linked to weaker cardiovascular health, lower metabolic resilience, and reduced longevity.' },
-  { stat: '~38%', label: 'have pre-diabetes.', desc: 'Pre-diabetes means blood sugar is elevated (fasting glucose 100–125 mg/dL or A1C 5.7–6.4%) but not yet diabetic. Most people don\'t know they have it, yet it sharply raises the odds of progressing to type 2 diabetes, heart disease, and stroke.' },
-  { stat: '~88%', label: 'are not metabolically healthy.', desc: 'Metabolic health means optimal levels across blood sugar, blood pressure, cholesterol, triglycerides, and waist size — without medication. Falling outside even one marker is associated with higher risk of chronic disease, even at a normal weight.' },
-  { stat: '~90%', label: 'do not meet recommended intake levels for at least one essential nutrient.', desc: 'Common shortfalls include vitamin D, magnesium, potassium, fiber, calcium, and omega-3s. Chronic gaps quietly affect energy, mood, immunity, bone density, and long-term disease risk — long before they show up on a standard lab panel.' },
-  { stat: '~75%', label: 'do not meet recommended daily total water intake levels.', desc: 'Guidelines suggest roughly 3.7 L/day for men and 2.7 L/day for women from all fluids and foods. Even mild dehydration (1–2% body weight) can impair focus, mood, energy, kidney function, and exercise performance.' },
+  { value: 74, label: 'of US adults are overweight or obese.', desc: 'Overweight is defined as a BMI of 25–29.9, obesity as 30–39.9, and severe (class III) obesity as 40+. Excess body fat raises the risk of heart disease, type 2 diabetes, and many cancers — making body composition one of the strongest signals of long-term health.' },
+  { value: 75, label: 'do not meet recommended physical activity levels.', desc: 'US guidelines call for at least 150 minutes of moderate (or 75 minutes of vigorous) aerobic activity per week, plus muscle-strengthening on 2+ days. Falling short is linked to weaker cardiovascular health, lower metabolic resilience, and reduced longevity.' },
+  { value: 38, label: 'have pre-diabetes.', desc: 'Pre-diabetes means blood sugar is elevated (fasting glucose 100–125 mg/dL or A1C 5.7–6.4%) but not yet diabetic. Most people don\'t know they have it, yet it sharply raises the odds of progressing to type 2 diabetes, heart disease, and stroke.' },
+  { value: 88, label: 'are not metabolically healthy.', desc: 'Metabolic health means optimal levels across blood sugar, blood pressure, cholesterol, triglycerides, and waist size — without medication. Falling outside even one marker is associated with higher risk of chronic disease, even at a normal weight.' },
+  { value: 90, label: 'do not meet recommended intake levels for at least one essential nutrient.', desc: 'Common shortfalls include vitamin D, magnesium, potassium, fiber, calcium, and omega-3s. Chronic gaps quietly affect energy, mood, immunity, bone density, and long-term disease risk — long before they show up on a standard lab panel.' },
+  { value: 75, label: 'do not meet recommended daily total water intake levels.', desc: 'Guidelines suggest roughly 3.7 L/day for men and 2.7 L/day for women from all fluids and foods. Even mild dehydration (1–2% body weight) can impair focus, mood, energy, kidney function, and exercise performance.' },
 ];
+
+const LIVE = [
+  'WHOOP — Recovery, strain, sleep, HRV, respiratory rate, SpO₂, skin temp, workouts',
+  'Dexcom G7 — Continuous glucose, GMI, time-in-range, sensor sessions',
+];
+
+const SOON = ['Apple Health', 'Google Health Connect', '+ more'];
 
 const HEAT = [
   0.9, 0.7, 1, 0.4, 0.8, 0.95, 0.6, 1, 0.85, 0.5, 0.75, 0.9, 1, 0.65,
@@ -215,7 +222,88 @@ const HEAT = [
   1, 0.5, 0.85, 0.7, 0.95, 0.35, 0.8, 1, 0.65, 0.9, 0.75, 0.55, 0.95, 0.85,
 ];
 
-/* ---------------- small components (outside Page to preserve state) ---------------- */
+/* ---------------- motion components ---------------- */
+
+function CountUp({ value, prefix = '~', suffix = '%' }: { value: number; prefix?: string; suffix?: string }) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const [n, setN] = useState(0);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) return;
+        io.disconnect();
+        const start = performance.now();
+        const dur = 1500;
+        const tick = (t: number) => {
+          const k = clamp((t - start) / dur);
+          const eased = 1 - Math.pow(1 - k, 3);
+          setN(Math.round(eased * value));
+          if (k < 1) requestAnimationFrame(tick);
+        };
+        requestAnimationFrame(tick);
+      },
+      { threshold: 0.6 }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [value]);
+
+  return (
+    <span ref={ref}>
+      {prefix}{n}{suffix}
+    </span>
+  );
+}
+
+function SplitWords({ text, startDelay = 0, step = 0.06 }: { text: string; startDelay?: number; step?: number }) {
+  return (
+    <>
+      {text.split(' ').map((w, i) => (
+        <span className="wmask" key={i}>
+          <span className="wword" style={{ transitionDelay: `${startDelay + i * step}s` }}>
+            {w}&nbsp;
+          </span>
+        </span>
+      ))}
+    </>
+  );
+}
+
+function Tilt({ children, wide = false, delay = 0 }: { children: ReactNode; wide?: boolean; delay?: number }) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  const onMove = (e: PointerEvent<HTMLDivElement>) => {
+    if (typeof window !== 'undefined' && !window.matchMedia('(pointer: fine)').matches) return;
+    const el = ref.current;
+    const inner = el?.firstElementChild as HTMLElement | null;
+    if (!el || !inner) return;
+    const r = el.getBoundingClientRect();
+    const x = (e.clientX - r.left) / r.width - 0.5;
+    const y = (e.clientY - r.top) / r.height - 0.5;
+    inner.style.transform = `perspective(950px) rotateX(${(-y * 6).toFixed(2)}deg) rotateY(${(x * 6).toFixed(2)}deg) translateY(-8px)`;
+  };
+
+  const onLeave = () => {
+    const inner = ref.current?.firstElementChild as HTMLElement | null;
+    if (inner) inner.style.transform = '';
+  };
+
+  return (
+    <div
+      ref={ref}
+      className={`tilt${wide ? ' feature-wide' : ''}`}
+      data-reveal
+      style={{ transitionDelay: `${delay}s` }}
+      onPointerMove={onMove}
+      onPointerLeave={onLeave}
+    >
+      {children}
+    </div>
+  );
+}
 
 function MarqueeRow({ reverse = false }: { reverse?: boolean }) {
   const items = [...SUPPLEMENTS, ...SUPPLEMENTS];
@@ -230,11 +318,13 @@ function MarqueeRow({ reverse = false }: { reverse?: boolean }) {
   );
 }
 
-function ElementCard({ sym, name, desc }: { sym: string; name: string; desc: string }) {
+function ElementCard({ sym, name, desc, index }: { sym: string; name: string; desc: string; index: number }) {
   const [flipped, setFlipped] = useState(false);
   return (
     <div
       className={`flip${flipped ? ' flipped' : ''}`}
+      data-reveal="flip"
+      style={{ transitionDelay: `${index * 0.08}s` }}
       onClick={() => setFlipped(!flipped)}
       role="button"
       tabIndex={0}
@@ -257,25 +347,27 @@ function ElementCard({ sym, name, desc }: { sym: string; name: string; desc: str
   );
 }
 
-function StatCard({ stat, label, desc }: { stat: string; label: string; desc: string }) {
+function StatCard({ value, label, desc, index }: { value: number; label: string; desc: string; index: number }) {
   const [flipped, setFlipped] = useState(false);
   return (
     <div
       className={`flip flip-stat${flipped ? ' flipped' : ''}`}
+      data-reveal="flip"
+      style={{ transitionDelay: `${index * 0.1}s` }}
       onClick={() => setFlipped(!flipped)}
       role="button"
       tabIndex={0}
       onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && setFlipped(!flipped)}
-      aria-label={`${stat} ${label}, tap for more`}
+      aria-label={`~${value}% ${label}, tap for more`}
     >
       <div className="flip-inner">
         <div className="flip-face flip-front">
-          <span className="stat-num">{stat}</span>
+          <span className="stat-num"><CountUp value={value} /></span>
           <span className="stat-label">{label}</span>
           <span className="flip-hint">Tap for more →</span>
         </div>
         <div className="flip-face flip-back">
-          <span className="stat-num stat-num-sm">{stat}</span>
+          <span className="stat-num stat-num-sm">~{value}%</span>
           <p className="flip-desc">{desc}</p>
           <span className="flip-hint">← Tap to flip back</span>
         </div>
@@ -289,6 +381,8 @@ function StatCard({ stat, label, desc }: { stat: string; label: string; desc: st
 export default function Page() {
   const journeyRef = useRef<HTMLElement>(null);
   const bgRef = useRef<HTMLDivElement>(null);
+  const marqueeRef = useRef<HTMLDivElement>(null);
+  const lastY = useRef(0);
   const [p, setP] = useState(0);
 
   useEffect(() => {
@@ -296,17 +390,25 @@ export default function Page() {
     const onScroll = () => {
       cancelAnimationFrame(raf);
       raf = requestAnimationFrame(() => {
-        const el = journeyRef.current;
         const vh = window.innerHeight;
+        const y = window.scrollY;
+
+        const el = journeyRef.current;
         if (el) {
           const rect = el.getBoundingClientRect();
           setP(clamp(-rect.top / (rect.height - vh)));
         }
         if (bgRef.current) {
           const max = document.documentElement.scrollHeight - vh;
-          const bp = max > 0 ? clamp(window.scrollY / max) : 0;
+          const bp = max > 0 ? clamp(y / max) : 0;
           bgRef.current.style.backgroundPosition = `50% ${bp * 100}%`;
         }
+        if (marqueeRef.current) {
+          const dy = y - lastY.current;
+          const skew = Math.min(10, Math.max(-10, dy * 0.35));
+          marqueeRef.current.style.transform = `skewX(${(-skew).toFixed(2)}deg)`;
+        }
+        lastY.current = y;
       });
     };
     onScroll();
@@ -429,8 +531,8 @@ export default function Page() {
         </div>
       </section>
 
-      {/* ---------- supplement marquee ---------- */}
-      <div className="marquee" aria-label="Supported supplements">
+      {/* ---------- supplement marquee (velocity-reactive) ---------- */}
+      <div className="marquee" ref={marqueeRef} aria-label="Supported supplements">
         <MarqueeRow />
         <MarqueeRow reverse />
       </div>
@@ -438,99 +540,132 @@ export default function Page() {
       {/* ---------- the rhythm ---------- */}
       <section className="section statement">
         <p className="kicker" data-reveal>The rhythm</p>
-        <h2 className="section-title" data-reveal>Health is not a dashboard.<br />It&rsquo;s a rhythm.</h2>
+        <h2 className="section-title" data-reveal="words">
+          <SplitWords text="Health is not a dashboard." />
+          <br />
+          <SplitWords text="It’s a rhythm." startDelay={0.3} />
+        </h2>
       </section>
 
       {/* ---------- meet amalgam ---------- */}
       <section className="section" id="story">
         <div className="meet-grid">
-          <article className="card meet-card" data-reveal>
-            <p className="feature-tag">Meet Amalgam</p>
-            <p>Amalgam is a daily ritual companion. It brings your supplements, medications, hydration, sleep, movement, and wearable signals into one calm place — then helps you see what actually works.</p>
-          </article>
-          <article className="card meet-card" data-reveal>
-            <p className="feature-tag">Our purpose</p>
-            <p>We built Amalgam because most health apps either overwhelm you with data or reduce you to a score. We wanted something quieter: a tool that listens to your inputs, respects your time, and turns small daily actions into a clearer picture over time.</p>
-          </article>
-          <article className="card meet-card" data-reveal>
-            <p className="feature-tag">How it helps</p>
-            <p>Whether you&rsquo;re managing a supplement stack, tracking a chronic condition, optimizing sleep, or simply trying to stay consistent, Amalgam helps you notice patterns, avoid gaps, and make choices that fit your actual life.</p>
-          </article>
-          <article className="card meet-card" data-reveal>
-            <p className="feature-tag">What&rsquo;s next</p>
-            <p>Amalgam will keep deepening — more wearable integrations, richer health insights from Amala, and a ritual that grows with you. The goal is not more data. It&rsquo;s a calmer, more personal path to feeling better.</p>
-          </article>
+          <Tilt delay={0}>
+            <article className="card meet-card">
+              <p className="feature-tag">Meet Amalgam</p>
+              <p>Amalgam is a daily ritual companion. It brings your supplements, medications, hydration, sleep, movement, and wearable signals into one calm place — then helps you see what actually works.</p>
+            </article>
+          </Tilt>
+          <Tilt delay={0.1}>
+            <article className="card meet-card">
+              <p className="feature-tag">Our purpose</p>
+              <p>We built Amalgam because most health apps either overwhelm you with data or reduce you to a score. We wanted something quieter: a tool that listens to your inputs, respects your time, and turns small daily actions into a clearer picture over time.</p>
+            </article>
+          </Tilt>
+          <Tilt delay={0.2}>
+            <article className="card meet-card">
+              <p className="feature-tag">How it helps</p>
+              <p>Whether you’re managing a supplement stack, tracking a chronic condition, optimizing sleep, or simply trying to stay consistent, Amalgam helps you notice patterns, avoid gaps, and make choices that fit your actual life.</p>
+            </article>
+          </Tilt>
+          <Tilt delay={0.3}>
+            <article className="card meet-card">
+              <p className="feature-tag">What’s next</p>
+              <p>Amalgam will keep deepening — more wearable integrations, richer health insights from Amala, and a ritual that grows with you. The goal is not more data. It’s a calmer, more personal path to feeling better.</p>
+            </article>
+          </Tilt>
         </div>
       </section>
 
       {/* ---------- features ---------- */}
       <section className="section" id="features">
         <p className="kicker" data-reveal>Features</p>
-        <h2 className="section-title" data-reveal>Built for the way you<br />actually take care of yourself.</h2>
+        <h2 className="section-title" data-reveal="words">
+          <SplitWords text="Built for the way you" />
+          <br />
+          <SplitWords text="actually take care of yourself." startDelay={0.3} />
+        </h2>
         <div className="bento">
-          <article className="card" data-reveal>
-            <div className="card-icon"><Icon name="capsule" size={40} /></div>
-            <p className="feature-tag">Ritual</p>
-            <h3>Daily Ritual</h3>
-            <p>Your full schedule of supplements and medications, organized exactly the way you actually take them. Define your ritual once — doses, timing, form, personal notes — and Amala synthesizes it into a calm, ordered daily flow that reads like a checklist without ever feeling like one.</p>
-            <p>Morning fuel, midday focus, evening wind-down, and night recovery each hold their place. You always know what&rsquo;s next, what&rsquo;s already done, and what you can trust to be there tomorrow — without ever having to check a label.</p>
-          </article>
-          <article className="card" data-reveal>
-            <div className="card-icon"><Icon name="pulse" size={40} /></div>
-            <p className="feature-tag">Pulse</p>
-            <h3>Dose Tracking</h3>
-            <p>Whether it&rsquo;s a capsule, drop, tincture, spray, or mist, a single tap logs your progress in the moment. There&rsquo;s no judgment for the days that get away from you and no clutter for the days that go perfectly — just an honest record of what you actually took, and when.</p>
-            <p>Every log flows quietly into Amala, feeding your streaks, weekly pulse, and Health Index without ever asking you to think about it twice.</p>
-          </article>
-          <article className="card" data-reveal>
-            <div className="card-icon"><Icon name="star" size={40} /></div>
-            <p className="feature-tag">Synthesis</p>
-            <h3>Health Profile</h3>
-            <p>Share a few brief details about your daily rhythm — from lifestyle habits and nutrition to current medications — and Amala synthesizes them into a holistic 0–100 Health Index. You get a clear, single view of your metabolic balance, stress load, symptom picture, and where the weakest links quietly live.</p>
-            <p>From that same profile, Amalgam curates a supplement ritual designed for your body&rsquo;s natural cycle — perfectly mapped from morning to night, and refined every time your inputs shift.</p>
-          </article>
-          <article className="card feature-wide" data-reveal>
-            <div className="card-icon"><Icon name="ring" size={40} /></div>
-            <p className="feature-tag">Connections</p>
-            <h3>Integrations</h3>
-            <p>Amalgam meets you where your data already lives, working quietly in the background so you don&rsquo;t have to. By connecting passively to your wearables and health platforms, it transforms silent biometric streams — like recovery depth, sleep architectures, glucose behaviors, and strain patterns — into actionable contexts for your daily ritual.</p>
-            <p>Instead of forcing you to jump between fragmented dashboards, Amalgam unifies these disparate signals into a singular, cohesive view. It acts as an automated ledger that listens to your body&rsquo;s baseline in real time, helping you adjust your supplement stack, notice subtle physiological shifts, and understand the genuine impact of your habits without demanding your constant attention.</p>
-            <div className="chips">
-              <span className="chips-label">Live now</span>
-              <span className="chip chip-live"><span className="dot" />WHOOP — Recovery, strain, sleep, HRV, respiratory rate, SpO₂, skin temp, workouts</span>
-              <span className="chip chip-live"><span className="dot" />Dexcom G7 — Continuous glucose, GMI, time-in-range, sensor sessions</span>
-              <span className="chips-label">Coming soon</span>
-              <span className="chip chip-soon"><span className="dot" />Apple Health</span>
-              <span className="chip chip-soon"><span className="dot" />Google Health Connect</span>
-              <span className="chip chip-soon"><span className="dot" />+ more</span>
-            </div>
-          </article>
-          <article className="card feature-wide" data-reveal id="ai">
-            <div className="ai-feature">
-              <div className="ai-orb" aria-hidden>
-                <div className="ai-orb-ring" />
-                <div className="ai-orb-core"><Icon name="bolt" size={48} /></div>
+          <Tilt delay={0}>
+            <article className="card">
+              <div className="card-icon"><Icon name="capsule" size={40} /></div>
+              <p className="feature-tag">Ritual</p>
+              <h3>Daily Ritual</h3>
+              <p>Your full schedule of supplements and medications, organized exactly the way you actually take them. Define your ritual once — doses, timing, form, personal notes — and Amala synthesizes it into a calm, ordered daily flow that reads like a checklist without ever feeling like one.</p>
+              <p>Morning fuel, midday focus, evening wind-down, and night recovery each hold their place. You always know what’s next, what’s already done, and what you can trust to be there tomorrow — without ever having to check a label.</p>
+            </article>
+          </Tilt>
+          <Tilt delay={0.1}>
+            <article className="card">
+              <div className="card-icon"><Icon name="pulse" size={40} /></div>
+              <p className="feature-tag">Pulse</p>
+              <h3>Dose Tracking</h3>
+              <p>Whether it’s a capsule, drop, tincture, spray, or mist, a single tap logs your progress in the moment. There’s no judgment for the days that get away from you and no clutter for the days that go perfectly — just an honest record of what you actually took, and when.</p>
+              <p>Every log flows quietly into Amala, feeding your streaks, weekly pulse, and Health Index without ever asking you to think about it twice.</p>
+            </article>
+          </Tilt>
+          <Tilt delay={0.2}>
+            <article className="card">
+              <div className="card-icon"><Icon name="star" size={40} /></div>
+              <p className="feature-tag">Synthesis</p>
+              <h3>Health Profile</h3>
+              <p>Share a few brief details about your daily rhythm — from lifestyle habits and nutrition to current medications — and Amala synthesizes them into a holistic 0–100 Health Index. You get a clear, single view of your metabolic balance, stress load, symptom picture, and where the weakest links quietly live.</p>
+              <p>From that same profile, Amalgam curates a supplement ritual designed for your body’s natural cycle — perfectly mapped from morning to night, and refined every time your inputs shift.</p>
+            </article>
+          </Tilt>
+          <Tilt wide delay={0.1}>
+            <article className="card">
+              <div className="card-icon"><Icon name="ring" size={40} /></div>
+              <p className="feature-tag">Connections</p>
+              <h3>Integrations</h3>
+              <p>Amalgam meets you where your data already lives, working quietly in the background so you don’t have to. By connecting passively to your wearables and health platforms, it transforms silent biometric streams — like recovery depth, sleep architectures, glucose behaviors, and strain patterns — into actionable contexts for your daily ritual.</p>
+              <p>Instead of forcing you to jump between fragmented dashboards, Amalgam unifies these disparate signals into a singular, cohesive view. It acts as an automated ledger that listens to your body’s baseline in real time, helping you adjust your supplement stack, notice subtle physiological shifts, and understand the genuine impact of your habits without demanding your constant attention.</p>
+              <div className="chips">
+                <span className="chips-label">Live now</span>
+                {LIVE.map((c, i) => (
+                  <span key={c} className="chip chip-live" style={{ '--d': `${0.3 + i * 0.12}s` } as CSSProperties}>
+                    <span className="dot" />{c}
+                  </span>
+                ))}
+                <span className="chips-label">Coming soon</span>
+                {SOON.map((c, i) => (
+                  <span key={c} className="chip chip-soon" style={{ '--d': `${0.55 + i * 0.12}s` } as CSSProperties}>
+                    <span className="dot" />{c}
+                  </span>
+                ))}
               </div>
-              <div>
-                <p className="feature-tag">Intelligence</p>
-                <h3>Amala AI</h3>
-                <p>Amala is the quiet intelligence beneath your entire experience — the layer that watches your inputs, listens to your rhythm, and translates daily details into insight. From lifestyle levers and morning notes to sleep, stress, and supplement patterns, everything you give her is synthesized into something clearer than the sum of its parts. Every recommendation, every Health Index shift, every nudge in your ritual is filtered through Amala first — so the guidance you see stays true to your body, your goals, and the version of yourself you&rsquo;re becoming.</p>
-                <p>And when you want to go deeper, you can simply ask. A private conversation with the intelligence that already knows your ritual, your data, and your goals — &ldquo;why am I taking this?&rdquo;, &ldquo;how did last week actually go?&rdquo;, &ldquo;what should I lean into before travel?&rdquo; — answered in context, drawing on your Health Profile, current stack, integrations, and recent trends. It&rsquo;s the closest thing to a knowledgeable friend who has been paying quiet attention all along.</p>
+            </article>
+          </Tilt>
+          <Tilt wide delay={0.15}>
+            <article className="card" id="ai">
+              <div className="ai-feature">
+                <div className="ai-orb" aria-hidden>
+                  <div className="ai-orb-ring" />
+                  <div className="ai-orb-core"><Icon name="bolt" size={48} /></div>
+                </div>
+                <div>
+                  <p className="feature-tag">Intelligence</p>
+                  <h3>Amala AI</h3>
+                  <p>Amala is the quiet intelligence beneath your entire experience — the layer that watches your inputs, listens to your rhythm, and translates daily details into insight. From lifestyle levers and morning notes to sleep, stress, and supplement patterns, everything you give her is synthesized into something clearer than the sum of its parts. Every recommendation, every Health Index shift, every nudge in your ritual is filtered through Amala first — so the guidance you see stays true to your body, your goals, and the version of yourself you’re becoming.</p>
+                  <p>And when you want to go deeper, you can simply ask. A private conversation with the intelligence that already knows your ritual, your data, and your goals — “why am I taking this?”, “how did last week actually go?”, “what should I lean into before travel?” — answered in context, drawing on your Health Profile, current stack, integrations, and recent trends. It’s the closest thing to a knowledgeable friend who has been paying quiet attention all along.</p>
+                </div>
               </div>
-            </div>
-          </article>
-          <article className="card feature-wide" data-reveal>
-            <div className="card-icon"><Icon name="grid" size={40} /></div>
-            <p className="feature-tag">Patterns</p>
-            <h3>Consistency Heatmap</h3>
-            <p>A calm grid shows where you&rsquo;ve stayed steady and where the week got the better of you. Streaks reveal themselves without shouting, and gaps read as information rather than failure.</p>
-            <p>Zoom out and the shape of your year appears — the seasons where your ritual clicked, the stretches that quietly slipped, and the direction you&rsquo;re actually moving.</p>
-            <div className="heat" aria-hidden>
-              {HEAT.map((v, i) => (
-                <span key={i} style={{ opacity: 0.15 + v * 0.85 }} />
-              ))}
-            </div>
-          </article>
+            </article>
+          </Tilt>
+          <Tilt wide delay={0.2}>
+            <article className="card">
+              <div className="card-icon"><Icon name="grid" size={40} /></div>
+              <p className="feature-tag">Patterns</p>
+              <h3>Consistency Heatmap</h3>
+              <p>A calm grid shows where you’ve stayed steady and where the week got the better of you. Streaks reveal themselves without shouting, and gaps read as information rather than failure.</p>
+              <p>Zoom out and the shape of your year appears — the seasons where your ritual clicked, the stretches that quietly slipped, and the direction you’re actually moving.</p>
+              <div className="heat" aria-hidden>
+                {HEAT.map((v, i) => (
+                  <span key={i} style={{ opacity: 0.15 + v * 0.85, '--d': `${0.2 + i * 0.025}s` } as CSSProperties} />
+                ))}
+              </div>
+            </article>
+          </Tilt>
         </div>
         <p className="more-link" data-reveal>
           <a href="https://tryamalgam.com/features">Show all features →</a>
@@ -540,15 +675,17 @@ export default function Page() {
       {/* ---------- the body ---------- */}
       <section className="section" id="body">
         <p className="kicker" data-reveal>The body</p>
-        <h2 className="section-title" data-reveal>What the Body Needs to Thrive</h2>
+        <h2 className="section-title" data-reveal="words">
+          <SplitWords text="What the Body Needs to Thrive" />
+        </h2>
         <p className="section-copy" data-reveal>
           Your body is built from essential elements, minerals, water, vitamins, and nutrients that support energy,
           recovery, focus, metabolism, and long-term health.
         </p>
         <p className="sub-label" data-reveal>What the body is made of</p>
         <div className="elements-grid">
-          {ELEMENTS.map((el) => (
-            <ElementCard key={el.sym} {...el} />
+          {ELEMENTS.map((el, i) => (
+            <ElementCard key={el.sym} {...el} index={i} />
           ))}
         </div>
         <p className="sub-label" data-reveal>Why they matter</p>
@@ -573,19 +710,25 @@ export default function Page() {
         <p className="kicker" data-reveal>The modern condition</p>
         <div className="stats-grid">
           {STATS.map((s, i) => (
-            <StatCard key={i} {...s} />
+            <StatCard key={i} {...s} index={i} />
           ))}
         </div>
         <p className="section-copy statement-copy" data-reveal style={{ marginTop: '64px' }}>
           Busy schedules, processed foods, and inconsistency — even with the best intentions, modern life can easily
           disrupt the harmony of our internal rhythm.
         </p>
-        <h2 className="section-title signal" data-reveal>In a world of noise,<br />Amalgam provides the signal.</h2>
+        <h2 className="section-title signal" data-reveal="words">
+          <SplitWords text="In a world of noise," />
+          <br />
+          <SplitWords text="Amalgam provides the signal." startDelay={0.35} />
+        </h2>
       </section>
 
       {/* ---------- moment of clarity ---------- */}
       <section className="section statement">
-        <h2 className="section-title" data-reveal>A Moment of Clarity</h2>
+        <h2 className="section-title" data-reveal="words">
+          <SplitWords text="A Moment of Clarity" />
+        </h2>
         <p className="section-copy statement-copy" data-reveal>
           Consistency turns good intentions into lasting change. By bringing awareness to your daily habits,
           you create the clarity your body needs to perform at its best.
@@ -598,7 +741,9 @@ export default function Page() {
       <section className="section statement" id="privacy">
         <div className="card-icon privacy-icon" data-reveal><Icon name="shield" size={44} /></div>
         <p className="kicker" data-reveal>Privacy</p>
-        <h2 className="section-title" data-reveal>Your data is a sanctuary.</h2>
+        <h2 className="section-title" data-reveal="words">
+          <SplitWords text="Your data is a sanctuary." />
+        </h2>
         <p className="section-copy statement-copy" data-reveal>
           Your rituals, readings, and reflections are deeply personal. Amalgam is built with industry-leading
           encryption and strict data architecture, ensuring your health journey remains entirely yours — private,
@@ -611,7 +756,11 @@ export default function Page() {
 
       {/* ---------- final CTA ---------- */}
       <section className="section cta" id="enter">
-        <h2 className="cta-title" data-reveal>Start<br />with today.</h2>
+        <h2 className="cta-title" data-reveal="words">
+          <SplitWords text="Start" />
+          <br />
+          <SplitWords text="with today." startDelay={0.2} />
+        </h2>
         <p className="section-copy" data-reveal>
           No setup ceremony. Add what you take, when you take it, and let Amalgam hold the rest.
         </p>
