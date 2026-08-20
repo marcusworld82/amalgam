@@ -222,6 +222,23 @@ const HEAT = [
   1, 0.5, 0.85, 0.7, 0.95, 0.35, 0.8, 1, 0.65, 0.9, 0.75, 0.55, 0.95, 0.85,
 ];
 
+type BgIcon = { icon: IconName; x: number; y: number; s: number; speed: number; anim: 'a' | 'b' | 'c' };
+
+const BG_ICONS: BgIcon[] = [
+  { icon: 'capsule', x: 6, y: 15, s: 46, speed: 0.14, anim: 'a' },
+  { icon: 'leaf', x: 88, y: 12, s: 40, speed: 0.09, anim: 'b' },
+  { icon: 'star', x: 15, y: 70, s: 34, speed: 0.12, anim: 'c' },
+  { icon: 'drop', x: 78, y: 55, s: 38, speed: 0.07, anim: 'a' },
+  { icon: 'bubble', x: 45, y: 20, s: 28, speed: 0.16, anim: 'b' },
+  { icon: 'bolt', x: 30, y: 85, s: 36, speed: 0.1, anim: 'c' },
+  { icon: 'moon', x: 65, y: 80, s: 34, speed: 0.08, anim: 'a' },
+  { icon: 'ring', x: 92, y: 70, s: 30, speed: 0.13, anim: 'b' },
+  { icon: 'wave', x: 10, y: 40, s: 44, speed: 0.07, anim: 'c' },
+  { icon: 'pulse', x: 55, y: 60, s: 40, speed: 0.11, anim: 'a' },
+  { icon: 'capsule', x: 38, y: 35, s: 30, speed: 0.15, anim: 'b' },
+  { icon: 'leaf', x: 72, y: 25, s: 32, speed: 0.09, anim: 'c' },
+];
+
 /* ---------------- motion components ---------------- */
 
 function CountUp({ value, prefix = '~', suffix = '%' }: { value: number; prefix?: string; suffix?: string }) {
@@ -382,6 +399,7 @@ export default function Page() {
   const journeyRef = useRef<HTMLElement>(null);
   const bgRef = useRef<HTMLDivElement>(null);
   const marqueeRef = useRef<HTMLDivElement>(null);
+  const iconsRef = useRef<HTMLDivElement>(null);
   const lastY = useRef(0);
   const [p, setP] = useState(0);
 
@@ -408,6 +426,23 @@ export default function Page() {
           const skew = Math.min(10, Math.max(-10, dy * 0.35));
           marqueeRef.current.style.transform = `skewX(${(-skew).toFixed(2)}deg)`;
         }
+
+        const layer = iconsRef.current;
+        if (layer) {
+          const gate = document.getElementById('rhythm');
+          const show = gate ? gate.getBoundingClientRect().top < vh * 0.55 : true;
+          layer.style.opacity = show ? '1' : '0';
+          const range = vh + 320;
+          const kids = layer.children;
+          for (let i = 0; i < kids.length; i++) {
+            const kid = kids[i] as HTMLElement;
+            const speed = parseFloat(kid.dataset.speed || '0.1');
+            const off = (y * speed) % range;
+            const rot = y * speed * 0.06;
+            kid.style.transform = `translateY(${(160 - off).toFixed(1)}px) rotate(${rot.toFixed(1)}deg)`;
+          }
+        }
+
         lastY.current = y;
       });
     };
@@ -443,6 +478,15 @@ export default function Page() {
       <div className="orb orb-1" aria-hidden />
       <div className="orb orb-2" aria-hidden />
       <div className="orb orb-3" aria-hidden />
+      <div className="bg-icons" ref={iconsRef} aria-hidden>
+        {BG_ICONS.map((b, i) => (
+          <span key={i} className="bg-icon" data-speed={b.speed} style={{ left: `${b.x}%`, top: `${b.y}%` }}>
+            <span className={`floater-inner float-${b.anim}`} style={{ animationDelay: `${i * 0.5}s` }}>
+              <Icon name={b.icon} size={b.s} />
+            </span>
+          </span>
+        ))}
+      </div>
       <div className="grain" aria-hidden />
 
       <header className="site-header">
@@ -538,7 +582,7 @@ export default function Page() {
       </div>
 
       {/* ---------- the rhythm ---------- */}
-      <section className="section statement">
+      <section className="section statement" id="rhythm">
         <p className="kicker" data-reveal>The rhythm</p>
         <h2 className="section-title" data-reveal="words">
           <SplitWords text="Health is not a dashboard." />

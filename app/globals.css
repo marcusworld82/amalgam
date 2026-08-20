@@ -124,6 +124,34 @@ main {
   to { transform: translate(8vw, -12vh) scale(1.12); }
 }
 
+/* ---------- floating background icons (post-rhythm) ---------- */
+
+.bg-icons {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 1.2s ease;
+}
+
+.bg-icon {
+  position: absolute;
+  color: var(--lav-deep);
+  opacity: 0.26;
+  will-change: transform;
+}
+
+.bg-icon:nth-child(3n) {
+  color: var(--ink);
+  opacity: 0.18;
+}
+
+.bg-icon:nth-child(4n) {
+  color: var(--rose);
+  opacity: 0.3;
+}
+
 .grain {
   position: fixed;
   inset: 0;
@@ -1167,6 +1195,14 @@ main {
 
   .site-header nav a:not(.btn-pill) {
     display: none;
+  }
+
+  .bg-icon:nth-child(n+7) {
+    display: none;
+  }
+
+  .bg-icon svg {
+    transform: scale(0.7);
   }
 }
 
