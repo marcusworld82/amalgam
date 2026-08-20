@@ -138,18 +138,18 @@ main {
 .bg-icon {
   position: absolute;
   color: var(--lav-deep);
-  opacity: 0.26;
+  opacity: 0.5;
   will-change: transform;
 }
 
 .bg-icon:nth-child(3n) {
   color: var(--ink);
-  opacity: 0.18;
+  opacity: 0.38;
 }
 
 .bg-icon:nth-child(4n) {
   color: var(--rose);
-  opacity: 0.3;
+  opacity: 0.55;
 }
 
 .grain {
@@ -1197,12 +1197,12 @@ main {
     display: none;
   }
 
-  .bg-icon:nth-child(n+7) {
+  .bg-icon:nth-child(n+11) {
     display: none;
   }
 
   .bg-icon svg {
-    transform: scale(0.7);
+    transform: scale(0.75);
   }
 }
 
